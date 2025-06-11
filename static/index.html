@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canopy Robot Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .status { margin: 10px 0; font-size: 1.2em; }
+    button { margin: 5px; padding: 10px 15px; }
+  </style>
+</head>
+<body>
+  <h1>🛠️ Canopy Robot Dashboard</h1>
+
+  <div class="status">
+    <strong>FSM State:</strong> <span id="fsmState">--</span><br>
+    <strong>dx (mm):</strong> <span id="dx">--</span><br>
+    <strong>Shingles Placed:</strong> <span id="shingleCount">--</span>
+  </div>
+
+  <button onclick="sendCommand('start')">▶ Start</button>
+  <button onclick="sendCommand('place_shingle')">📦 Place Shingle</button>
+  <button onclick="sendCommand('stop')">⛔ Stop</button>
+
+  <img id="video" src="" width="640" height="480">
+  <script>
+    document.getElementById('video').src = `http://${window.location.hostname}:5000/video_feed`;
+  </script>
+  
+
+  <script>
+    const apiBase = `http://${window.location.hostname}:5000`;
+
+    async function fetchStatus() {
+      const res = await fetch(`${apiBase}/status`);
+      const data = await res.json();
+      document.getElementById('fsmState').textContent = data.fsm_state;
+      document.getElementById('dx').textContent = data.dx.toFixed(2);
+      document.getElementById('shingleCount').textContent = data.shingle_count;
+    }
+
+    async function sendCommand(cmd) {
+      await fetch(`${apiBase}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cmd })
+      });
+      fetchStatus(); // Refresh after command
+    }
+
+    setInterval(fetchStatus, 1000); // Poll every second
+    fetchStatus(); // Initial fetch
+  </script>
+</body>
+</html>
