@@ -1,0 +1,11 @@
+{
+  "motor_speed_multiplier": 5.0,
+  "motor_noise_level": 0.001,
+  "motor_failure_rate": 0.0,
+  "simulated_dx_offset": 0.0,
+  "vision_noise_level": 0.005,
+  "detection_failure_rate": 0.0,
+  "synthetic_lines_count": 3,
+  "connection_stable": true,
+  "enable_failure_injection": false
+}

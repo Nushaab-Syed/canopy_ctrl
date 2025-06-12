@@ -3,52 +3,939 @@
 <head>
   <title>Canopy Robot Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .status { margin: 10px 0; font-size: 1.2em; }
-    button { margin: 5px; padding: 10px 15px; }
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      background-color: #f5f5f5; 
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .panel {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .panel h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .status-item {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+    }
+    
+    .status-label {
+      font-weight: bold;
+      color: #666;
+      font-size: 0.9em;
+      margin-bottom: 5px;
+    }
+    
+    .status-value {
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    /* FSM State Visualization */
+    .fsm-state {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 0.9em;
+    }
+    
+    .fsm-idle { background: #e9ecef; color: #495057; }
+    .fsm-scanning { background: #fff3cd; color: #856404; }
+    .fsm-aligning { background: #d4edda; color: #155724; }
+    .fsm-placing { background: #cce5ff; color: #004085; }
+    .fsm-nailing { background: #f8d7da; color: #721c24; }
+    .fsm-retracting { background: #d1ecf1; color: #0c5460; }
+    .fsm-advancing { background: #e2e3e5; color: #383d41; }
+    .fsm-homing { background: #ffeaa7; color: #6c5ce7; }
+    .fsm-error { background: #f5c6cb; color: #721c24; }
+    .fsm-emergency_stop { background: #dc3545; color: white; }
+    .fsm-manual_mode { background: #17a2b8; color: white; }
+    
+    /* Motor Position Indicators */
+    .motor-positions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .motor-indicator {
+      background: #f8f9fa;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .motor-indicator.running {
+      border-color: #28a745;
+      animation: pulse 1s infinite;
+    }
+    
+    .motor-label {
+      font-weight: bold;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .motor-position {
+      font-size: 1.6em;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .motor-status {
+      font-size: 0.8em;
+      margin-top: 5px;
+      color: #666;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+    }
+    
+    /* Control Buttons */
+    .control-section {
+      margin: 20px 0;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9em;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .btn-primary { background: #007bff; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-warning { background: #ffc107; color: #212529; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-info { background: #17a2b8; color: white; }
+    
+    .btn-emergency {
+      background: #dc3545;
+      color: white;
+      font-size: 1.1em;
+      padding: 15px 25px;
+      animation: emergency-blink 1s infinite alternate;
+    }
+    
+    @keyframes emergency-blink {
+      0% { background: #dc3545; }
+      100% { background: #c82333; }
+    }
+    
+    /* Parameter Controls */
+    .parameter-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .param-group {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+    }
+    
+    .param-label {
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #495057;
+    }
+    
+    .param-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    
+    /* Error Display */
+    .error-panel {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      display: none;
+    }
+    
+    .error-panel.show {
+      display: block;
+    }
+    
+    .error-title {
+      font-weight: bold;
+      color: #721c24;
+      margin-bottom: 8px;
+    }
+    
+    .error-message {
+      color: #721c24;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+    
+    /* Video Feed */
+    .video-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    #video {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* Vision Parameters */
+    .vision-params {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .collapsible {
+      cursor: pointer;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    
+    .collapsible:hover {
+      background: #dee2e6;
+    }
+    
+    .collapsible-content {
+      display: none;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 0 0 4px 4px;
+    }
+    
+    .collapsible-content.show {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <h1>🛠️ Canopy Robot Dashboard</h1>
 
-  <div class="status">
-    <strong>FSM State:</strong> <span id="fsmState">--</span><br>
-    <strong>dx (mm):</strong> <span id="dx">--</span><br>
-    <strong>Shingles Placed:</strong> <span id="shingleCount">--</span>
+  <!-- Error Display Panel -->
+  <div id="errorPanel" class="error-panel">
+    <div class="error-title">⚠️ System Error</div>
+    <div id="errorMessage" class="error-message">--</div>
   </div>
 
-  <button onclick="sendCommand('start')">▶ Start</button>
-  <button onclick="sendCommand('place_shingle')">📦 Place Shingle</button>
-  <button onclick="sendCommand('stop')">⛔ Stop</button>
+  <div class="container">
+    <!-- Left Column: Status & Controls -->
+    <div>
+      <!-- System Status Panel -->
+      <div class="panel">
+        <h2>📊 System Status</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">FSM State</div>
+            <div class="status-value">
+              <span id="fsmState" class="fsm-state fsm-idle">IDLE</span>
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Alignment Offset (dx)</div>
+            <div class="status-value">
+              <span id="dx">--</span> <span style="font-size: 0.8em;">mm</span>
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Shingles Placed</div>
+            <div class="status-value" id="shingleCount">--</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">STM32 Connection</div>
+            <div class="status-value" id="stm32Connected">--</div>
+          </div>
+        </div>
 
-  <img id="video" src="" width="640" height="480">
-  <script>
-    document.getElementById('video').src = `http://${window.location.hostname}:5000/video_feed`;
-  </script>
+        <!-- Motor Position Indicators -->
+        <h3>🔧 Motor Positions</h3>
+        <div class="motor-positions">
+          <div id="xMotor" class="motor-indicator">
+            <div class="motor-label">X-Axis</div>
+            <div class="motor-position" id="xPosition">--</div>
+            <div class="motor-status" id="xStatus">Ready</div>
+          </div>
+          <div id="yMotor" class="motor-indicator">
+            <div class="motor-label">Y-Axis</div>
+            <div class="motor-position" id="yPosition">--</div>
+            <div class="motor-status" id="yStatus">Ready</div>
+          </div>
+          <div id="zMotor" class="motor-indicator">
+            <div class="motor-label">Z-Axis</div>
+            <div class="motor-position" id="zPosition">--</div>
+            <div class="motor-status" id="zStatus">Ready</div>
+          </div>
+        </div>
+
+        <!-- Vision System Status -->
+        <h3>👁️ Vision System</h3>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">Detected Lines</div>
+            <div class="status-value" id="detectedLines">--</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Detection Confidence</div>
+            <div class="status-value">
+              <span id="visionConfidence">--</span><span style="font-size: 0.8em;">%</span>
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Alignment Status</div>
+            <div class="status-value" id="alignmentStatus">--</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">State Duration</div>
+            <div class="status-value">
+              <span id="stateDuration">--</span><span style="font-size: 0.8em;">s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="panel">
+        <h2>🎮 Robot Control</h2>
+        
+        <div class="control-section">
+          <h3>Autonomous Operation</h3>
+          <div class="button-group">
+            <button class="btn-success" onclick="sendCommand('start')">▶️ Start Cycle</button>
+            <button class="btn-warning" onclick="sendCommand('stop')">⏹️ Stop</button>
+            <button class="btn-info" onclick="sendCommand('home')">🏠 Home All</button>
+            <button class="btn-emergency" onclick="sendCommand('emergency_stop')">🚨 EMERGENCY STOP</button>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h3>Manual Control</h3>
+          <div class="button-group">
+            <button class="btn-info" onclick="sendCommand('manual_mode')">🔧 Manual Mode</button>
+            <button class="btn-secondary" onclick="sendCommand('auto_mode')">🤖 Auto Mode</button>
+            <button class="btn-primary" onclick="sendCommand('place_shingle')">📦 Place Shingle</button>
+            <button class="btn-danger" onclick="sendCommand('nail')">🔨 Nail</button>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h3>Error Recovery</h3>
+          <div class="button-group">
+            <button class="btn-warning" onclick="sendCommand('clear_error')">🔄 Clear Error</button>
+            <button class="btn-warning" onclick="sendCommand('clear_emergency')">🔓 Clear Emergency</button>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h3>Manual Movement</h3>
+          <div class="button-group">
+            <button class="btn-secondary" onclick="moveMotor('x', 0.01)">X+ (1cm)</button>
+            <button class="btn-secondary" onclick="moveMotor('x', -0.01)">X- (1cm)</button>
+            <button class="btn-secondary" onclick="moveMotor('y', 0.01)">Y+ (1cm)</button>
+            <button class="btn-secondary" onclick="moveMotor('y', -0.01)">Y- (1cm)</button>
+            <button class="btn-secondary" onclick="moveMotor('z', 0.01)">Z+ (1cm)</button>
+            <button class="btn-secondary" onclick="moveMotor('z', -0.01)">Z- (1cm)</button>
+          </div>
+          <div class="button-group">
+            <button class="btn-secondary" onclick="moveMotor('x', 0.001)">X+ (1mm)</button>
+            <button class="btn-secondary" onclick="moveMotor('x', -0.001)">X- (1mm)</button>
+            <button class="btn-secondary" onclick="moveMotor('y', 0.001)">Y+ (1mm)</button>
+            <button class="btn-secondary" onclick="moveMotor('y', -0.001)">Y- (1mm)</button>
+            <button class="btn-secondary" onclick="moveMotor('z', 0.001)">Z+ (1mm)</button>
+            <button class="btn-secondary" onclick="moveMotor('z', -0.001)">Z- (1mm)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Video Feed & Parameters -->
+    <div>
+      <!-- Video Feed Panel -->
+      <div class="panel">
+        <h2>📹 Camera Feed</h2>
+        <div class="video-container">
+          <img id="video" src="" style="max-width: 100%; border-radius: 8px;">
+        </div>
+        <script>
+          document.getElementById('video').src = `http://${window.location.hostname}:5000/video_feed`;
+        </script>
+      </div>
+
+      <!-- Parameter Control Panel -->
+      <div class="panel">
+        <h2>⚙️ Parameter Controls</h2>
+        
+        <!-- FSM Parameters -->
+        <div class="collapsible" onclick="toggleCollapsible('fsmParams')">
+          <strong>🤖 FSM Parameters</strong>
+        </div>
+        <div id="fsmParams" class="collapsible-content">
+          <div class="parameter-controls">
+            <div class="param-group">
+              <div class="param-label">Alignment Tolerance (m)</div>
+              <input type="number" class="param-input" id="alignmentTolerance" step="0.001" value="0.005">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Scan Duration (s)</div>
+              <input type="number" class="param-input" id="scanDuration" step="0.1" value="2.0">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Placement Depth (m)</div>
+              <input type="number" class="param-input" id="placementDepth" step="0.001" value="0.02">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Advance Distance (m)</div>
+              <input type="number" class="param-input" id="advanceDistance" step="0.01" value="0.15">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Nail Duration (s)</div>
+              <input type="number" class="param-input" id="nailDuration" step="0.1" value="1.0">
+            </div>
+            <div class="param-group">
+              <div class="param-label">State Timeout (s)</div>
+              <input type="number" class="param-input" id="stateTimeout" step="1" value="30">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="updateFSMParams()">💾 Update FSM Parameters</button>
+        </div>
+
+        <!-- Vision Parameters -->
+        <div class="collapsible" onclick="toggleCollapsible('visionParams')">
+          <strong>👁️ Vision Parameters</strong>
+        </div>
+        <div id="visionParams" class="collapsible-content">
+          <div class="parameter-controls">
+            <div class="param-group">
+              <div class="param-label">Canny Low Threshold</div>
+              <input type="number" class="param-input" id="cannyLow" value="50">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Canny High Threshold</div>
+              <input type="number" class="param-input" id="cannyHigh" value="150">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Expected Shingle X (px)</div>
+              <input type="number" class="param-input" id="expectedShingleX" value="200">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Alignment Tolerance (px)</div>
+              <input type="number" class="param-input" id="visionTolerance" value="10">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Min Line Length (px)</div>
+              <input type="number" class="param-input" id="minLineLength" value="50">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Hough Threshold</div>
+              <input type="number" class="param-input" id="houghThreshold" value="50">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="updateVisionParams()">💾 Update Vision Parameters</button>
+        </div>
+
+        <!-- Calibration -->
+        <div class="collapsible" onclick="toggleCollapsible('calibration')">
+          <strong>📐 Camera Calibration</strong>
+        </div>
+        <div id="calibration" class="collapsible-content">
+          <p>Click on the video feed to select 4 corner points for perspective calibration.</p>
+          <p><strong>Order:</strong> Top-left, Top-right, Bottom-left, Bottom-right</p>
+          <div id="calibrationPoints">Selected points: <span id="pointCount">0</span>/4</div>
+          <button class="btn-warning" onclick="clearCalibrationPoints()">🔄 Clear Points</button>
+          <button class="btn-success" onclick="performCalibration()">📐 Calibrate</button>
+        </div>
+
+        <!-- Simulation Controls (only visible in simulation mode) -->
+        <div id="simulationControls" class="collapsible" onclick="toggleCollapsible('simulation')" style="display: none;">
+          <strong>🤖 Simulation Controls</strong>
+        </div>
+        <div id="simulation" class="collapsible-content">
+          <div class="parameter-controls">
+            <div class="param-group">
+              <div class="param-label">Motor Speed Multiplier</div>
+              <input type="number" class="param-input" id="motorSpeedMultiplier" step="0.1" value="5.0">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Simulated dx Offset (m)</div>
+              <input type="number" class="param-input" id="simulatedDxOffset" step="0.001" value="0.0">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Vision Noise Level</div>
+              <input type="number" class="param-input" id="visionNoiseLevel" step="0.001" value="0.005">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Synthetic Lines Count</div>
+              <input type="number" class="param-input" id="syntheticLinesCount" min="1" max="10" value="3">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Enable Failure Injection</div>
+              <input type="checkbox" class="param-input" id="enableFailureInjection">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Motor Failure Rate</div>
+              <input type="number" class="param-input" id="motorFailureRate" step="0.01" min="0" max="1" value="0.0">
+            </div>
+          </div>
+          
+          <div class="button-group">
+            <button class="btn-primary" onclick="updateSimulationConfig()">💾 Update Simulation</button>
+            <button class="btn-warning" onclick="regenerateScene()">🔄 Regenerate Scene</button>
+          </div>
+          
+          <h4>Failure Injection Testing</h4>
+          <div class="button-group">
+            <button class="btn-danger" onclick="injectFailure('motor_error')">🔧 Motor Error</button>
+            <button class="btn-danger" onclick="injectFailure('vision_failure')">👁️ Vision Failure</button>
+            <button class="btn-danger" onclick="injectFailure('connection_loss')">📡 Connection Loss</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   
 
   <script>
     const apiBase = `http://${window.location.hostname}:5000`;
+    let calibrationPoints = [];
+    let startTime = Date.now();
 
+    // Fetch and update system status
     async function fetchStatus() {
-      const res = await fetch(`${apiBase}/status`);
-      const data = await res.json();
-      document.getElementById('fsmState').textContent = data.fsm_state;
-      document.getElementById('dx').textContent = data.dx.toFixed(2);
-      document.getElementById('shingleCount').textContent = data.shingle_count;
+      try {
+        const res = await fetch(`${apiBase}/status`);
+        const data = await res.json();
+        
+        // Update FSM state with visual styling
+        const fsmState = data.fsm_state;
+        const fsmElement = document.getElementById('fsmState');
+        fsmElement.textContent = fsmState.toUpperCase();
+        fsmElement.className = `fsm-state fsm-${fsmState}`;
+        
+        // Update basic status
+        document.getElementById('dx').textContent = (data.dx * 1000).toFixed(1); // Convert to mm
+        document.getElementById('shingleCount').textContent = data.shingle_count;
+        
+        // Update motor status with visual indicators
+        const motor = data.motor_status;
+        document.getElementById('stm32Connected').textContent = motor.connected ? '✅ Connected' : '❌ Disconnected';
+        
+        // Update motor positions and running states
+        updateMotorIndicator('x', motor.x_position, motor.x_running);
+        updateMotorIndicator('y', motor.y_position, motor.y_running);
+        updateMotorIndicator('z', motor.z_position, motor.z_running);
+        
+        // Update vision system status
+        if (data.debug_info) {
+          document.getElementById('detectedLines').textContent = data.debug_info.detected_lines || 0;
+          document.getElementById('visionConfidence').textContent = ((data.debug_info.confidence || 0) * 100).toFixed(0);
+        }
+        
+        document.getElementById('alignmentStatus').textContent = data.alignment_ok ? '✅ Aligned' : '❌ Not Aligned';
+        
+        // Calculate and display state duration
+        if (data.fsm_status && data.fsm_status.state_start_time) {
+          const duration = (Date.now() / 1000) - data.fsm_status.state_start_time;
+          document.getElementById('stateDuration').textContent = duration.toFixed(1);
+        }
+        
+        // Handle error display
+        const errorPanel = document.getElementById('errorPanel');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        if (data.fsm_status && data.fsm_status.error_message && data.fsm_status.error_message !== "") {
+          errorMessage.textContent = data.fsm_status.error_message;
+          errorPanel.classList.add('show');
+        } else if (data.error) {
+          errorMessage.textContent = data.error;
+          errorPanel.classList.add('show');
+        } else {
+          errorPanel.classList.remove('show');
+        }
+        
+      } catch (error) {
+        console.error('Failed to fetch status:', error);
+        document.getElementById('errorMessage').textContent = `Connection error: ${error.message}`;
+        document.getElementById('errorPanel').classList.add('show');
+      }
     }
 
+    // Update motor indicator with visual feedback
+    function updateMotorIndicator(axis, position, running) {
+      const positionElement = document.getElementById(`${axis}Position`);
+      const statusElement = document.getElementById(`${axis}Status`);
+      const motorElement = document.getElementById(`${axis}Motor`);
+      
+      positionElement.textContent = `${position.toFixed(3)}m`;
+      statusElement.textContent = running ? 'Moving...' : 'Ready';
+      
+      if (running) {
+        motorElement.classList.add('running');
+      } else {
+        motorElement.classList.remove('running');
+      }
+    }
+
+    // Send command to robot
     async function sendCommand(cmd) {
-      await fetch(`${apiBase}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cmd })
-      });
-      fetchStatus(); // Refresh after command
+      try {
+        const response = await fetch(`${apiBase}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cmd })
+        });
+        
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Command failed');
+        }
+        
+        fetchStatus(); // Refresh after command
+      } catch (error) {
+        console.error('Command failed:', error);
+        document.getElementById('errorMessage').textContent = `Command error: ${error.message}`;
+        document.getElementById('errorPanel').classList.add('show');
+      }
     }
 
-    setInterval(fetchStatus, 1000); // Poll every second
-    fetchStatus(); // Initial fetch
+    // Move motor by specified distance
+    async function moveMotor(axis, distance) {
+      const payload = { cmd: 'move' };
+      payload[`${axis}_dist`] = distance;
+      
+      try {
+        const response = await fetch(`${apiBase}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Move command failed');
+        }
+        
+        fetchStatus(); // Refresh after command
+      } catch (error) {
+        console.error('Move command failed:', error);
+        document.getElementById('errorMessage').textContent = `Move error: ${error.message}`;
+        document.getElementById('errorPanel').classList.add('show');
+      }
+    }
+
+    // Toggle collapsible sections
+    function toggleCollapsible(id) {
+      const content = document.getElementById(id);
+      content.classList.toggle('show');
+    }
+
+    // Update FSM parameters
+    async function updateFSMParams() {
+      const params = {
+        alignment_tolerance: parseFloat(document.getElementById('alignmentTolerance').value),
+        scan_duration: parseFloat(document.getElementById('scanDuration').value),
+        placement_depth: parseFloat(document.getElementById('placementDepth').value),
+        advance_distance: parseFloat(document.getElementById('advanceDistance').value),
+        nail_duration: parseFloat(document.getElementById('nailDuration').value),
+        max_state_timeout: parseFloat(document.getElementById('stateTimeout').value)
+      };
+      
+      try {
+        const response = await fetch(`${apiBase}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cmd: 'set_params', params: params })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('FSM parameters updated successfully!');
+        } else {
+          throw new Error(result.error || 'Failed to update parameters');
+        }
+      } catch (error) {
+        alert(`Failed to update FSM parameters: ${error.message}`);
+      }
+    }
+
+    // Update vision parameters
+    async function updateVisionParams() {
+      const params = {
+        canny_low: parseInt(document.getElementById('cannyLow').value),
+        canny_high: parseInt(document.getElementById('cannyHigh').value),
+        expected_shingle_x: parseInt(document.getElementById('expectedShingleX').value),
+        alignment_tolerance: parseInt(document.getElementById('visionTolerance').value),
+        min_line_length: parseInt(document.getElementById('minLineLength').value),
+        hough_threshold: parseInt(document.getElementById('houghThreshold').value)
+      };
+      
+      try {
+        const response = await fetch(`${apiBase}/vision/parameters`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parameters: params })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('Vision parameters updated successfully!');
+        } else {
+          throw new Error(result.error || 'Failed to update parameters');
+        }
+      } catch (error) {
+        alert(`Failed to update vision parameters: ${error.message}`);
+      }
+    }
+
+    // Camera calibration functionality
+    function setupCalibration() {
+      const videoElement = document.getElementById('video');
+      videoElement.addEventListener('click', function(event) {
+        if (calibrationPoints.length < 4) {
+          const rect = videoElement.getBoundingClientRect();
+          const scaleX = videoElement.naturalWidth / rect.width;
+          const scaleY = videoElement.naturalHeight / rect.height;
+          
+          const x = Math.round((event.clientX - rect.left) * scaleX);
+          const y = Math.round((event.clientY - rect.top) * scaleY);
+          
+          calibrationPoints.push([x, y]);
+          
+          document.getElementById('pointCount').textContent = calibrationPoints.length;
+          
+          if (calibrationPoints.length === 4) {
+            alert('All 4 calibration points selected! Click "Calibrate" to apply.');
+          }
+        }
+      });
+    }
+
+    function clearCalibrationPoints() {
+      calibrationPoints = [];
+      document.getElementById('pointCount').textContent = '0';
+    }
+
+    async function performCalibration() {
+      if (calibrationPoints.length !== 4) {
+        alert('Please select exactly 4 calibration points first.');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${apiBase}/vision/calibrate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ corner_points: calibrationPoints })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('Camera calibration completed successfully!');
+          clearCalibrationPoints();
+        } else {
+          throw new Error(result.error || 'Calibration failed');
+        }
+      } catch (error) {
+        alert(`Calibration failed: ${error.message}`);
+      }
+    }
+
+    // Load initial parameters
+    async function loadInitialParameters() {
+      try {
+        // Load vision parameters
+        const visionResponse = await fetch(`${apiBase}/vision/parameters`);
+        if (visionResponse.ok) {
+          const visionData = await visionResponse.json();
+          const params = visionData.parameters;
+          
+          if (params) {
+            document.getElementById('cannyLow').value = params.canny_low || 50;
+            document.getElementById('cannyHigh').value = params.canny_high || 150;
+            document.getElementById('expectedShingleX').value = params.expected_shingle_x || 200;
+            document.getElementById('visionTolerance').value = params.alignment_tolerance || 10;
+            document.getElementById('minLineLength').value = params.min_line_length || 50;
+            document.getElementById('houghThreshold').value = params.hough_threshold || 50;
+          }
+        }
+        
+        // Check simulation mode and load simulation parameters
+        const simResponse = await fetch(`${apiBase}/simulation/status`);
+        if (simResponse.ok) {
+          const simData = await simResponse.json();
+          
+          if (simData.simulation_mode) {
+            // Show simulation controls
+            document.getElementById('simulationControls').style.display = 'block';
+            
+            // Add simulation mode indicator to title
+            document.querySelector('h1').innerHTML = '🤖 Canopy Robot Dashboard <span style="color: #ff6b35;">[SIMULATION MODE]</span>';
+            
+            // Load simulation config
+            const configResponse = await fetch(`${apiBase}/simulation/config`);
+            if (configResponse.ok) {
+              const configData = await configResponse.json();
+              const config = configData.config;
+              
+              if (config) {
+                document.getElementById('motorSpeedMultiplier').value = config.motor_speed_multiplier || 5.0;
+                document.getElementById('simulatedDxOffset').value = config.simulated_dx_offset || 0.0;
+                document.getElementById('visionNoiseLevel').value = config.vision_noise_level || 0.005;
+                document.getElementById('syntheticLinesCount').value = config.synthetic_lines_count || 3;
+                document.getElementById('enableFailureInjection').checked = config.enable_failure_injection || false;
+                document.getElementById('motorFailureRate').value = config.motor_failure_rate || 0.0;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load initial parameters:', error);
+      }
+    }
+
+    // Simulation-specific functions
+    async function updateSimulationConfig() {
+      const config = {
+        motor_speed_multiplier: parseFloat(document.getElementById('motorSpeedMultiplier').value),
+        simulated_dx_offset: parseFloat(document.getElementById('simulatedDxOffset').value),
+        vision_noise_level: parseFloat(document.getElementById('visionNoiseLevel').value),
+        synthetic_lines_count: parseInt(document.getElementById('syntheticLinesCount').value),
+        enable_failure_injection: document.getElementById('enableFailureInjection').checked,
+        motor_failure_rate: parseFloat(document.getElementById('motorFailureRate').value)
+      };
+      
+      try {
+        const response = await fetch(`${apiBase}/simulation/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: config })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('Simulation configuration updated successfully!');
+        } else {
+          throw new Error(result.error || 'Failed to update simulation config');
+        }
+      } catch (error) {
+        alert(`Failed to update simulation config: ${error.message}`);
+      }
+    }
+
+    async function regenerateScene() {
+      try {
+        const response = await fetch(`${apiBase}/simulation/regenerate_scene`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('Synthetic scene regenerated successfully!');
+        } else {
+          throw new Error(result.error || 'Failed to regenerate scene');
+        }
+      } catch (error) {
+        alert(`Failed to regenerate scene: ${error.message}`);
+      }
+    }
+
+    async function injectFailure(failureType) {
+      const duration = prompt(`Inject ${failureType} for how many seconds?`, '5');
+      if (!duration) return;
+      
+      try {
+        const response = await fetch(`${apiBase}/simulation/inject_failure`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            failure_type: failureType,
+            duration: parseFloat(duration)
+          })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert(`Injected ${failureType} for ${duration} seconds`);
+        } else {
+          throw new Error(result.error || 'Failed to inject failure');
+        }
+      } catch (error) {
+        alert(`Failed to inject failure: ${error.message}`);
+      }
+    }
+
+    // Initialize the interface
+    function initialize() {
+      setupCalibration();
+      loadInitialParameters();
+      setInterval(fetchStatus, 1000); // Poll every second
+      fetchStatus(); // Initial fetch
+    }
+
+    // Start everything when page loads
+    window.addEventListener('load', initialize);
   </script>
 </body>
 </html>
