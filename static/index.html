@@ -466,33 +466,83 @@
           <strong>👁️ Vision Parameters</strong>
         </div>
         <div id="visionParams" class="collapsible-content">
+          <!-- Preset Management -->
+          <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px;">
+            <h4 style="margin-top: 0; color: #1976d2;">📋 Parameter Presets</h4>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+              <select id="presetSelect" class="param-input" style="flex: 1;">
+                <option value="">Select a preset...</option>
+              </select>
+              <button class="btn-success" onclick="loadSelectedPreset()">📂 Load</button>
+              <button class="btn-danger" onclick="deleteSelectedPreset()">🗑️ Delete</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="text" id="newPresetName" class="param-input" placeholder="Enter preset name..." style="flex: 1;">
+              <button class="btn-primary" onclick="saveCurrentAsPreset()">💾 Save Current</button>
+            </div>
+            
+            <div id="presetInfo" style="margin-top: 10px; font-size: 0.9em; color: #666;">
+              Select a preset to view details
+            </div>
+          </div>
+
           <div class="parameter-controls">
             <div class="param-group">
               <div class="param-label">Canny Low Threshold</div>
-              <input type="number" class="param-input" id="cannyLow" value="50">
+              <input type="number" class="param-input" id="cannyLow" value="50" onchange="onParameterChange()">
             </div>
             <div class="param-group">
               <div class="param-label">Canny High Threshold</div>
-              <input type="number" class="param-input" id="cannyHigh" value="150">
+              <input type="number" class="param-input" id="cannyHigh" value="150" onchange="onParameterChange()">
             </div>
             <div class="param-group">
               <div class="param-label">Expected Shingle X (px)</div>
-              <input type="number" class="param-input" id="expectedShingleX" value="200">
+              <input type="number" class="param-input" id="expectedShingleX" value="200" onchange="onParameterChange()">
             </div>
             <div class="param-group">
               <div class="param-label">Alignment Tolerance (px)</div>
-              <input type="number" class="param-input" id="visionTolerance" value="10">
+              <input type="number" class="param-input" id="visionTolerance" value="10" onchange="onParameterChange()">
             </div>
             <div class="param-group">
               <div class="param-label">Min Line Length (px)</div>
-              <input type="number" class="param-input" id="minLineLength" value="50">
+              <input type="number" class="param-input" id="minLineLength" value="50" onchange="onParameterChange()">
             </div>
             <div class="param-group">
               <div class="param-label">Hough Threshold</div>
-              <input type="number" class="param-input" id="houghThreshold" value="50">
+              <input type="number" class="param-input" id="houghThreshold" value="50" onchange="onParameterChange()">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Gaussian Kernel Size</div>
+              <input type="number" class="param-input" id="gaussianKernel" value="5" onchange="onParameterChange()">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Gaussian Sigma</div>
+              <input type="number" class="param-input" id="gaussianSigma" step="0.1" value="1.0" onchange="onParameterChange()">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Max Line Gap</div>
+              <input type="number" class="param-input" id="maxLineGap" value="10" onchange="onParameterChange()">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Min Edge Length (px)</div>
+              <input type="number" class="param-input" id="minEdgeLength" value="80" onchange="onParameterChange()">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Max Slope (degrees)</div>
+              <input type="number" class="param-input" id="maxSlopeDeg" value="15" onchange="onParameterChange()">
+            </div>
+            <div class="param-group">
+              <div class="param-label">Morph Kernel Size</div>
+              <input type="number" class="param-input" id="morphKernelSize" value="3" onchange="onParameterChange()">
             </div>
           </div>
-          <button class="btn-primary" onclick="updateVisionParams()">💾 Update Vision Parameters</button>
+          
+          <div class="button-group">
+            <button class="btn-primary" onclick="updateVisionParams()">💾 Update Vision Parameters</button>
+            <button class="btn-warning" onclick="resetToDefaults()">🔄 Reset to Defaults</button>
+          </div>
         </div>
 
         <!-- Calibration -->
@@ -721,14 +771,7 @@
 
     // Update vision parameters
     async function updateVisionParams() {
-      const params = {
-        canny_low: parseInt(document.getElementById('cannyLow').value),
-        canny_high: parseInt(document.getElementById('cannyHigh').value),
-        expected_shingle_x: parseInt(document.getElementById('expectedShingleX').value),
-        alignment_tolerance: parseInt(document.getElementById('visionTolerance').value),
-        min_line_length: parseInt(document.getElementById('minLineLength').value),
-        hough_threshold: parseInt(document.getElementById('houghThreshold').value)
-      };
+      const params = getVisionParametersFromForm();
       
       try {
         const response = await fetch(`${apiBase}/vision/parameters`, {
@@ -745,6 +788,70 @@
         }
       } catch (error) {
         alert(`Failed to update vision parameters: ${error.message}`);
+      }
+    }
+
+    // Get all vision parameters from form
+    function getVisionParametersFromForm() {
+      return {
+        canny_low: parseInt(document.getElementById('cannyLow').value),
+        canny_high: parseInt(document.getElementById('cannyHigh').value),
+        expected_shingle_x: parseInt(document.getElementById('expectedShingleX').value),
+        alignment_tolerance: parseInt(document.getElementById('visionTolerance').value),
+        min_line_length: parseInt(document.getElementById('minLineLength').value),
+        hough_threshold: parseInt(document.getElementById('houghThreshold').value),
+        gaussian_kernel: [parseInt(document.getElementById('gaussianKernel').value), parseInt(document.getElementById('gaussianKernel').value)],
+        gaussian_sigma: parseFloat(document.getElementById('gaussianSigma').value),
+        max_line_gap: parseInt(document.getElementById('maxLineGap').value),
+        min_edge_length: parseInt(document.getElementById('minEdgeLength').value),
+        max_slope_deg: parseInt(document.getElementById('maxSlopeDeg').value),
+        morph_kernel_size: parseInt(document.getElementById('morphKernelSize').value)
+      };
+    }
+
+    // Set vision parameters in form
+    function setVisionParametersInForm(params) {
+      if (params.canny_low !== undefined) document.getElementById('cannyLow').value = params.canny_low;
+      if (params.canny_high !== undefined) document.getElementById('cannyHigh').value = params.canny_high;
+      if (params.expected_shingle_x !== undefined) document.getElementById('expectedShingleX').value = params.expected_shingle_x;
+      if (params.alignment_tolerance !== undefined) document.getElementById('visionTolerance').value = params.alignment_tolerance;
+      if (params.min_line_length !== undefined) document.getElementById('minLineLength').value = params.min_line_length;
+      if (params.hough_threshold !== undefined) document.getElementById('houghThreshold').value = params.hough_threshold;
+      if (params.gaussian_kernel !== undefined) document.getElementById('gaussianKernel').value = Array.isArray(params.gaussian_kernel) ? params.gaussian_kernel[0] : params.gaussian_kernel;
+      if (params.gaussian_sigma !== undefined) document.getElementById('gaussianSigma').value = params.gaussian_sigma;
+      if (params.max_line_gap !== undefined) document.getElementById('maxLineGap').value = params.max_line_gap;
+      if (params.min_edge_length !== undefined) document.getElementById('minEdgeLength').value = params.min_edge_length;
+      if (params.max_slope_deg !== undefined) document.getElementById('maxSlopeDeg').value = params.max_slope_deg;
+      if (params.morph_kernel_size !== undefined) document.getElementById('morphKernelSize').value = params.morph_kernel_size;
+    }
+
+    // Parameter change handler for real-time feedback
+    let parameterChangeTimeout;
+    function onParameterChange() {
+      clearTimeout(parameterChangeTimeout);
+      parameterChangeTimeout = setTimeout(() => {
+        updateVisionParams();
+      }, 1000); // Update after 1 second of no changes
+    }
+
+    // Reset parameters to defaults
+    function resetToDefaults() {
+      if (confirm('Reset all vision parameters to default values?')) {
+        setVisionParametersInForm({
+          canny_low: 50,
+          canny_high: 150,
+          expected_shingle_x: 200,
+          alignment_tolerance: 10,
+          min_line_length: 50,
+          hough_threshold: 50,
+          gaussian_kernel: 5,
+          gaussian_sigma: 1.0,
+          max_line_gap: 10,
+          min_edge_length: 80,
+          max_slope_deg: 15,
+          morph_kernel_size: 3
+        });
+        updateVisionParams();
       }
     }
 
@@ -811,14 +918,12 @@
           const params = visionData.parameters;
           
           if (params) {
-            document.getElementById('cannyLow').value = params.canny_low || 50;
-            document.getElementById('cannyHigh').value = params.canny_high || 150;
-            document.getElementById('expectedShingleX').value = params.expected_shingle_x || 200;
-            document.getElementById('visionTolerance').value = params.alignment_tolerance || 10;
-            document.getElementById('minLineLength').value = params.min_line_length || 50;
-            document.getElementById('houghThreshold').value = params.hough_threshold || 50;
+            setVisionParametersInForm(params);
           }
         }
+
+        // Load vision presets
+        await loadVisionPresets();
         
         // Check simulation mode and load simulation parameters
         const simResponse = await fetch(`${apiBase}/simulation/status`);
@@ -932,6 +1037,158 @@
       loadInitialParameters();
       setInterval(fetchStatus, 1000); // Poll every second
       fetchStatus(); // Initial fetch
+    }
+
+    // Vision Preset Management Functions
+    async function loadVisionPresets() {
+      try {
+        const response = await fetch(`${apiBase}/vision/presets`);
+        if (response.ok) {
+          const result = await response.json();
+          const presets = result.presets;
+          
+          const presetSelect = document.getElementById('presetSelect');
+          presetSelect.innerHTML = '<option value="">Select a preset...</option>';
+          
+          Object.keys(presets).forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            presetSelect.appendChild(option);
+          });
+          
+          // Update preset info when selection changes
+          presetSelect.addEventListener('change', updatePresetInfo);
+        }
+      } catch (error) {
+        console.error('Failed to load presets:', error);
+      }
+    }
+
+    async function updatePresetInfo() {
+      const presetSelect = document.getElementById('presetSelect');
+      const presetInfo = document.getElementById('presetInfo');
+      const selectedPreset = presetSelect.value;
+      
+      if (!selectedPreset) {
+        presetInfo.textContent = 'Select a preset to view details';
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${apiBase}/vision/presets`);
+        if (response.ok) {
+          const result = await response.json();
+          const preset = result.presets[selectedPreset];
+          
+          if (preset) {
+            presetInfo.innerHTML = `
+              <strong>${selectedPreset}</strong><br>
+              ${preset.description}<br>
+              <small>Created: ${new Date(preset.created_date).toLocaleDateString()}</small><br>
+              <small>Modified: ${new Date(preset.last_modified).toLocaleDateString()}</small>
+            `;
+          }
+        }
+      } catch (error) {
+        presetInfo.textContent = 'Error loading preset info';
+      }
+    }
+
+    async function loadSelectedPreset() {
+      const presetSelect = document.getElementById('presetSelect');
+      const selectedPreset = presetSelect.value;
+      
+      if (!selectedPreset) {
+        alert('Please select a preset to load');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${apiBase}/vision/presets/${selectedPreset}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert(`Preset '${selectedPreset}' loaded successfully!`);
+          // Reload parameters to update the form
+          const paramsResponse = await fetch(`${apiBase}/vision/parameters`);
+          if (paramsResponse.ok) {
+            const paramsData = await paramsResponse.json();
+            setVisionParametersInForm(paramsData.parameters);
+          }
+        } else {
+          throw new Error(result.error || 'Failed to load preset');
+        }
+      } catch (error) {
+        alert(`Failed to load preset: ${error.message}`);
+      }
+    }
+
+    async function saveCurrentAsPreset() {
+      const newPresetName = document.getElementById('newPresetName');
+      const presetName = newPresetName.value.trim();
+      
+      if (!presetName) {
+        alert('Please enter a preset name');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${apiBase}/vision/presets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: presetName,
+            parameters: getVisionParametersFromForm()
+          })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert(`Preset '${presetName}' saved successfully!`);
+          newPresetName.value = '';
+          await loadVisionPresets(); // Refresh preset list
+        } else {
+          throw new Error(result.error || 'Failed to save preset');
+        }
+      } catch (error) {
+        alert(`Failed to save preset: ${error.message}`);
+      }
+    }
+
+    async function deleteSelectedPreset() {
+      const presetSelect = document.getElementById('presetSelect');
+      const selectedPreset = presetSelect.value;
+      
+      if (!selectedPreset) {
+        alert('Please select a preset to delete');
+        return;
+      }
+      
+      if (!confirm(`Are you sure you want to delete the preset '${selectedPreset}'?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${apiBase}/vision/presets/${selectedPreset}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert(`Preset '${selectedPreset}' deleted successfully!`);
+          await loadVisionPresets(); // Refresh preset list
+          document.getElementById('presetInfo').textContent = 'Select a preset to view details';
+        } else {
+          throw new Error(result.error || 'Failed to delete preset');
+        }
+      } catch (error) {
+        alert(`Failed to delete preset: ${error.message}`);
+      }
     }
 
     // Start everything when page loads

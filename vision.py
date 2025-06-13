@@ -15,6 +15,7 @@ class ShingleVisionSystem:
     
     def __init__(self, calibration_file: str = "vision_calibration.json"):
         self.calibration_file = calibration_file
+        self.presets_file = "vision_presets.json"
         self.homography_matrix = None
         self.roi_bounds = None  # Region of interest for shingle detection
         
@@ -61,6 +62,7 @@ class ShingleVisionSystem:
         }
         
         self.load_calibration()
+        self.load_presets()
     
     def load_calibration(self) -> bool:
         """Load perspective transform calibration from file"""
@@ -126,6 +128,147 @@ class ShingleVisionSystem:
         
         print("Generated default calibration")
         self.save_calibration()
+    
+    def load_presets(self):
+        """Load vision parameter presets from file"""
+        self.presets = {}
+        try:
+            if os.path.exists(self.presets_file):
+                with open(self.presets_file, 'r') as f:
+                    self.presets = json.load(f)
+                    print(f"Loaded {len(self.presets)} vision presets")
+        except Exception as e:
+            print(f"Failed to load presets: {e}")
+            self.presets = {}
+    
+    def save_presets(self):
+        """Save vision parameter presets to file"""
+        try:
+            with open(self.presets_file, 'w') as f:
+                json.dump(self.presets, f, indent=2)
+            print(f"Saved {len(self.presets)} vision presets to {self.presets_file}")
+        except Exception as e:
+            print(f"Failed to save presets: {e}")
+    
+    def get_presets(self) -> Dict:
+        """Get all available presets with metadata"""
+        preset_info = {}
+        for name, preset_data in self.presets.items():
+            preset_info[name] = {
+                "params": preset_data.get("params", {}),
+                "description": preset_data.get("description", ""),
+                "created_date": preset_data.get("created_date", ""),
+                "last_modified": preset_data.get("last_modified", "")
+            }
+        return preset_info
+    
+    def save_preset(self, name: str, preset_params: Optional[Dict] = None) -> bool:
+        """
+        Save current or specified parameters as a preset
+        
+        Args:
+            name: Name for the preset
+            preset_params: Optional specific parameters to save. If None, uses current params
+            
+        Returns:
+            bool: True if saved successfully
+        """
+        try:
+            import datetime
+            now = datetime.datetime.now().isoformat()
+            
+            params_to_save = preset_params if preset_params is not None else self.params.copy()
+            
+            # Remove non-serializable items
+            serializable_params = {}
+            for key, value in params_to_save.items():
+                if key == "calibration_points":
+                    serializable_params[key] = value
+                elif isinstance(value, (str, int, float, bool, list, dict)):
+                    serializable_params[key] = value
+                elif hasattr(value, 'tolist'):  # numpy arrays
+                    serializable_params[key] = value.tolist()
+                else:
+                    print(f"Skipping non-serializable parameter: {key}")
+            
+            self.presets[name] = {
+                "params": serializable_params,
+                "description": f"Vision preset saved on {now[:10]}",
+                "created_date": self.presets.get(name, {}).get("created_date", now),
+                "last_modified": now
+            }
+            
+            self.save_presets()
+            print(f"Saved vision preset: {name}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to save preset {name}: {e}")
+            return False
+    
+    def load_preset(self, name: str) -> bool:
+        """
+        Load a vision parameter preset
+        
+        Args:
+            name: Name of the preset to load
+            
+        Returns:
+            bool: True if loaded successfully
+        """
+        try:
+            if name not in self.presets:
+                print(f"Preset '{name}' not found")
+                return False
+            
+            preset_data = self.presets[name]
+            saved_params = preset_data.get("params", {})
+            
+            # Update current parameters with preset values
+            for key, value in saved_params.items():
+                if key in self.params:
+                    # Convert back to numpy arrays if needed
+                    if key == "gaussian_kernel" and isinstance(value, list):
+                        self.params[key] = tuple(value)
+                    else:
+                        self.params[key] = value
+            
+            # Regenerate calibration if calibration points changed
+            if "calibration_points" in saved_params:
+                self.generate_default_calibration()
+            else:
+                self.save_calibration()
+            
+            print(f"Loaded vision preset: {name}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to load preset {name}: {e}")
+            return False
+    
+    def delete_preset(self, name: str) -> bool:
+        """
+        Delete a vision parameter preset
+        
+        Args:
+            name: Name of the preset to delete
+            
+        Returns:
+            bool: True if deleted successfully
+        """
+        try:
+            if name not in self.presets:
+                print(f"Preset '{name}' not found")
+                return False
+            
+            del self.presets[name]
+            self.save_presets()
+            print(f"Deleted vision preset: {name}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to delete preset {name}: {e}")
+            return False
     
     def calibrate_from_points(self, corner_points: List[Tuple[int, int]]):
         """
@@ -448,3 +591,23 @@ def set_vision_parameters(new_params: Dict):
     """Update vision system parameters"""
     vision_system.params.update(new_params)
     vision_system.save_calibration()
+
+
+def get_vision_presets() -> Dict:
+    """Get available vision parameter presets"""
+    return vision_system.get_presets()
+
+
+def save_vision_preset(name: str, preset_params: Optional[Dict] = None) -> bool:
+    """Save current or specified parameters as a preset"""
+    return vision_system.save_preset(name, preset_params)
+
+
+def load_vision_preset(name: str) -> bool:
+    """Load a vision parameter preset"""
+    return vision_system.load_preset(name)
+
+
+def delete_vision_preset(name: str) -> bool:
+    """Delete a vision parameter preset"""
+    return vision_system.delete_preset(name)

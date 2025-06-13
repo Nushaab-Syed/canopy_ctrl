@@ -8,7 +8,10 @@ import time
 import cv2
 from flask import Response, stream_with_context
 
-from vision import process_frame, calibrate_vision_system, get_vision_parameters, set_vision_parameters
+from vision import (
+    process_frame, calibrate_vision_system, get_vision_parameters, set_vision_parameters,
+    get_vision_presets, save_vision_preset, load_vision_preset, delete_vision_preset
+)
 from nucleo_comms import NucleoComms
 
 # Import simulation components
@@ -740,6 +743,74 @@ def set_vision_params():
         return jsonify({"success": True, "message": "Parameters updated"})
     except Exception as e:
         return jsonify({"error": f"Failed to update parameters: {str(e)}"}), 500
+
+
+@app.route("/vision/presets", methods=["GET"])
+def get_vision_presets_endpoint():
+    """Get all available vision parameter presets"""
+    try:
+        presets = get_vision_presets()
+        return jsonify({"success": True, "presets": presets})
+    except Exception as e:
+        return jsonify({"error": f"Failed to get presets: {str(e)}"}), 500
+
+
+@app.route("/vision/presets", methods=["POST"])
+def save_vision_preset_endpoint():
+    """
+    Save current or specified parameters as a preset
+    
+    Expected JSON format:
+    {
+        "name": "outdoor_sunny",
+        "parameters": {  // optional - if not provided, uses current params
+            "canny_low": 50,
+            "canny_high": 150,
+            ...
+        }
+    }
+    """
+    data = request.get_json()
+    name = data.get("name")
+    parameters = data.get("parameters")
+    
+    if not name:
+        return jsonify({"error": "Preset name is required"}), 400
+    
+    try:
+        success = save_vision_preset(name, parameters)
+        if success:
+            return jsonify({"success": True, "message": f"Preset '{name}' saved successfully"})
+        else:
+            return jsonify({"error": f"Failed to save preset '{name}'"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Failed to save preset: {str(e)}"}), 500
+
+
+@app.route("/vision/presets/<preset_name>", methods=["POST"])
+def load_vision_preset_endpoint(preset_name: str):
+    """Load a vision parameter preset"""
+    try:
+        success = load_vision_preset(preset_name)
+        if success:
+            return jsonify({"success": True, "message": f"Preset '{preset_name}' loaded successfully"})
+        else:
+            return jsonify({"error": f"Failed to load preset '{preset_name}'"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Failed to load preset: {str(e)}"}), 500
+
+
+@app.route("/vision/presets/<preset_name>", methods=["DELETE"])
+def delete_vision_preset_endpoint(preset_name: str):
+    """Delete a vision parameter preset"""
+    try:
+        success = delete_vision_preset(preset_name)
+        if success:
+            return jsonify({"success": True, "message": f"Preset '{preset_name}' deleted successfully"})
+        else:
+            return jsonify({"error": f"Failed to delete preset '{preset_name}'"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Failed to delete preset: {str(e)}"}), 500
 
 
 @app.route("/simulation/status", methods=["GET"])
